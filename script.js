@@ -12,16 +12,21 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // Reseta o estilo caso tenha dado erro na tentativa anterior
         statusMessage.style.color = "#fff";
         statusArea.classList.remove('hidden');
-        statusMessage.textContent = "Conectando ao servidor público... aguarde.";
+        statusMessage.textContent = "Conectando através de proxy seguro... aguarde.";
         downloadBtn.disabled = true;
         downloadBtn.textContent = "Buscando...";
 
         try {
-            // Faz a requisição para a API pública e gratuita do Cobalt
-            const response = await fetch('https://api.cobalt.tools/', {
+            // A URL da API que queremos acessar
+            const targetUrl = 'https://api.cobalt.tools/';
+            
+            // A URL do proxy juntamente com a URL alvo criptografada
+            const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
+
+            // Fazemos o fetch no Proxy, não direto no Cobalt
+            const response = await fetch(proxyUrl, {
                 method: 'POST',
                 headers: {
                     'Accept': 'application/json',
@@ -33,7 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             if (!response.ok) {
-                throw new Error("Erro na comunicação com a API pública.");
+                throw new Error(`A API rejeitou a conexão (Erro ${response.status}).`);
             }
 
             const data = await response.json();
@@ -42,25 +47,29 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error(data.text || "A API não conseguiu processar este vídeo.");
             }
 
-            // O Cobalt retorna o link final direto na propriedade 'url'
             const downloadLink = data.url;
 
-            // Cria um botão visualmente agradável com o link de download
+            // Sucesso! Mostra o botão de download
             statusMessage.innerHTML = `
-                Vídeo processado com sucesso! <br><br> 
+                 Vídeo processado com sucesso! <br><br> 
                 <a href="${downloadLink}" target="_blank" style="color: #121212; background-color: #bb86fc; text-decoration: none; font-weight: bold; padding: 10px 20px; border-radius: 8px; display: inline-block; margin-top: 10px; transition: 0.3s;">
-                    Baixar Arquivo
+                     Baixar Arquivo
                 </a>
             `;
             
         } catch (error) {
-            // Tratamento de erros elegante
-            statusMessage.innerHTML = `Ocorreu um erro: ${error.message}`;
-            statusMessage.style.color = "#ff5555"; // Vermelho claro para indicar erro no Dark Mode
+            // Tratamento de erro elegante para o usuário final
+            statusMessage.innerHTML = `
+                 Ocorreu um erro: ${error.message} <br><br> 
+                <span style="font-size: 0.85em; color: #a0a0a0;">
+                Servidores públicos podem estar sobrecarregados no momento.
+                </span>
+            `;
+            statusMessage.style.color = "#ff5555";
         } finally {
             downloadBtn.disabled = false;
             downloadBtn.textContent = "Baixar Novo Vídeo";
-            videoUrlInput.value = ''; // Limpa o input para o próximo uso
+            videoUrlInput.value = ''; 
         }
     });
 });
